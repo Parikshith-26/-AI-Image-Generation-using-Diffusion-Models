@@ -1,0 +1,26 @@
+import torch
+from diffusers import StableDiffusionPipeline,EulerAncestralDiscreteScheduler
+device="cuda"if torch.cuda.is_available()else("mps"if torch.backends.mps.is_available()else"cpu")
+
+model_id = "runwayml/stable-diffusion-v1-5"
+pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16 if device=="cuda"else torch.float32)
+pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
+if device=="cuda":
+    pipe=pipe.to(device)
+    pipe.enable_attention_slicing()
+else:
+   pipe = pipe.to(device)
+
+prompt="ultra-detail portrait of a red fox wearing a tiny scarf,cinematic lighting,35mm"
+negative_prompt="blurry,lowers,jpeg artifacts,extra fingers,text,watermark"
+
+image=pipe(
+    prompt=prompt,
+    negative_prompt=negative_prompt,
+    width=512,
+    height=512,
+    num_inference_steps=35,
+    guidance_scale=7.5,
+    generator=torch.Generator(device=device).manual_seed(45)
+).images[0]
+image.save("generated_image.png")
